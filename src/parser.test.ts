@@ -58,4 +58,22 @@ describe("parse", () => {
     const n = parse("^(?<id>[A-Z]{2}\\d+)(-\\w+)?$");
     expect(n.kind).toBe("seq");
   });
+
+  it("lookahead and negative lookahead", () => {
+    expect(parse("(?=abc)")).toMatchObject({ kind: "group", look: "lookahead", capturing: false });
+    expect(parse("(?!abc)")).toMatchObject({ kind: "group", look: "neg-lookahead" });
+  });
+
+  it("lookbehind and negative lookbehind", () => {
+    expect(parse("(?<=abc)")).toMatchObject({ kind: "group", look: "lookbehind" });
+    expect(parse("(?<!abc)")).toMatchObject({ kind: "group", look: "neg-lookbehind" });
+    // a named group is still a named group (not a lookbehind)
+    expect(parse("(?<n>a)")).toMatchObject({ kind: "group", name: "n" });
+  });
+
+  it("backreferences: numeric and named", () => {
+    expect(parse("\\1")).toMatchObject({ kind: "backref", ref: "1" });
+    expect(parse("\\12")).toMatchObject({ kind: "backref", ref: "12" });
+    expect(parse("\\k<year>")).toMatchObject({ kind: "backref", ref: "year" });
+  });
 });

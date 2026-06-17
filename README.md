@@ -31,17 +31,19 @@ const diagram = renderRailroad(ast);
 - **Classes** `\d \w \s` and negations, plus `[a-z]` / `[^...]` character sets
 - **Anchors** `^ $ \b \B`
 - **Groups** — capturing `(…)`, non-capturing `(?:…)`, named `(?<name>…)`
+- **Lookaround** — `(?=…)`, `(?!…)`, `(?<=…)`, `(?<!…)`, drawn as labeled zero-width assertions ("followed by", "not preceded by", …)
+- **Backreferences** — `\1` … `\99` and `\k<name>`
 - **Alternation** `a|b|c`
 - **Quantifiers** `* + ?`, `{m}`, `{m,}`, `{m,n}`, including lazy (`+?`)
 
 ## How it draws
 
-The renderer lays sequences left→right, stacks alternation branches vertically, wraps groups in a dashed box (with the capture name), and draws quantifiers as a loop-back arrow annotated with a human label ("1+ times", "optional", "2–4×"). Output is a self-contained SVG — no canvas, no runtime deps.
+The renderer lays sequences left→right, stacks alternation branches vertically, wraps groups in a dashed box (with the capture name), tints lookaround assertions amber with a plain-English label, and draws quantifiers as a loop-back arrow annotated with a human label ("1+ times", "optional", "2–4×"). Output is a self-contained SVG — no canvas, no runtime deps.
 
 ## Development
 
 ```bash
-npm install && npm test    # 13 tests (parser + renderer)
+npm install && npm test    # 19 tests (parser + renderer)
 npm run build              # tsc, clean
 ```
 

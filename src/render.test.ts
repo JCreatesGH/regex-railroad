@@ -28,4 +28,16 @@ describe("renderRailroad", () => {
     expect(svg).toContain("«id»");
     expect(svg.length).toBeGreaterThan(200);
   });
+
+  it("labels a lookahead assertion", () => {
+    expect(renderRailroad(parse("foo(?=bar)"))).toContain("followed by");
+  });
+
+  it("labels a negative lookbehind assertion", () => {
+    expect(renderRailroad(parse("(?<!\\$)\\d+"))).toContain("not preceded by");
+  });
+
+  it("renders a backreference", () => {
+    expect(renderRailroad(parse("(\\w)\\1"))).toContain("\\1");
+  });
 });

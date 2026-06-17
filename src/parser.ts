@@ -1,8 +1,9 @@
-import { Node } from "./ast.js";
+import { Node, Look } from "./ast.js";
 
 // Recursive-descent parser for a practical regex subset:
 // literals, escapes, ., \d \w \s (and negations), [..] classes, ^ $ anchors,
-// (groups), (?:...), (?<name>...), | alternation, and * + ? {m,n} quantifiers.
+// backreferences (\1, \k<name>), (groups), (?:...), (?<name>...), lookaround
+// ((?=...) (?!...) (?<=...) (?<!...)), | alternation, and * + ? {m,n} quantifiers.
 export function parse(source: string): Node {
   let i = 0;
   const peek = () => source[i];
@@ -60,15 +61,23 @@ export function parse(source: string): Node {
 
   function parseGroup(): Node {
     i++; // (
-    let capturing = true, name: string | undefined;
-    if (source.slice(i, i + 2) === "?:") { capturing = false; i += 2; }
-    else {
-      const nm = /^\?<([A-Za-z_][\w]*)>/.exec(source.slice(i));
-      if (nm) { name = nm[1]; i += nm[0].length; }
+    let capturing = true, name: string | undefined, look: Look | undefined;
+    if (peek() === "?") {
+      const two = source.slice(i, i + 2);
+      const three = source.slice(i, i + 3);
+      if (two === "?:") { capturing = false; i += 2; }
+      else if (two === "?=") { look = "lookahead"; capturing = false; i += 2; }
+      else if (two === "?!") { look = "neg-lookahead"; capturing = false; i += 2; }
+      else if (three === "?<=") { look = "lookbehind"; capturing = false; i += 3; }
+      else if (three === "?<!") { look = "neg-lookbehind"; capturing = false; i += 3; }
+      else {
+        const nm = /^\?<([A-Za-z_][\w]*)>/.exec(source.slice(i));
+        if (nm) { name = nm[1]; i += nm[0].length; }
+      }
     }
     const body = parseAlt();
     if (peek() === ")") i++;
-    return { kind: "group", capturing, name, body };
+    return { kind: "group", capturing, name, look, body };
   }
 
   function parseClass(): Node {
@@ -93,6 +102,15 @@ export function parse(source: string): Node {
     };
     if (c === "b" || c === "B") return { kind: "anchor", label: named[c] };
     if (named[c]) return { kind: "charclass", label: named[c], negated: c === c.toUpperCase() };
+    if (c >= "1" && c <= "9") {                       // numeric backreference \1..\99
+      let ref = c;
+      while (source[i] >= "0" && source[i] <= "9") { ref += source[i]; i++; }
+      return { kind: "backref", ref };
+    }
+    if (c === "k") {                                  // named backreference \k<name>
+      const nm = /^<([A-Za-z_][\w]*)>/.exec(source.slice(i));
+      if (nm) { i += nm[0].length; return { kind: "backref", ref: nm[1] }; }
+    }
     return { kind: "literal", value: c };
   }
 

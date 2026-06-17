@@ -1,4 +1,4 @@
-import { Node } from "./ast.js";
+import { Node, Look } from "./ast.js";
 
 // Render an AST to an SVG railroad diagram. Layout is intentionally simple:
 // sequences flow left→right, alternations stack vertically, repeats draw a
@@ -6,6 +6,13 @@ import { Node } from "./ast.js";
 interface Box { svg: string; w: number; h: number; }
 
 const PAD = 12, H = 34, FONT = 12;
+
+const LOOK_LABELS: Record<Look, string> = {
+  "lookahead": "followed by",
+  "neg-lookahead": "not followed by",
+  "lookbehind": "preceded by",
+  "neg-lookbehind": "not preceded by",
+};
 
 function term(text: string, fill: string, stroke: string): Box {
   const w = Math.max(40, text.length * 7 + PAD * 2);
@@ -26,15 +33,20 @@ function layout(node: Node): Box {
     case "literal": return term(JSON.stringify(node.value).slice(1, -1), "#fff", "#888");
     case "charclass": return term(node.label, "#eef", "#88a");
     case "anchor": return term(node.label, "#f6f6f6", "#bbb");
+    case "backref": return term(/^\d+$/.test(node.ref) ? "↪ \\" + node.ref : "↪ «" + node.ref + "»", "#fdf3e6", "#d0a060");
     case "group": {
       const inner = layout(node.body);
-      const label = node.name ? `«${node.name}»` : node.capturing ? "group" : "";
+      const label = node.look ? LOOK_LABELS[node.look]
+        : node.name ? `«${node.name}»`
+        : node.capturing ? "group" : "";
+      const stroke = node.look ? "#e0a050" : "#c0b0e0";
+      const textFill = node.look ? "#b06f10" : "#7a5fb0";
       const lh = label ? 16 : 0;
       const w = inner.w + 20, h = inner.h + lh + 12;
       return {
         w, h,
-        svg: `<rect x="0" y="0" width="${w}" height="${h}" rx="8" fill="none" stroke="#c0b0e0" stroke-dasharray="4 3"/>` +
-             (label ? `<text x="8" y="13" font-size="10" fill="#7a5fb0" font-family="monospace">${esc(label)}</text>` : "") +
+        svg: `<rect x="0" y="0" width="${w}" height="${h}" rx="8" fill="none" stroke="${stroke}" stroke-dasharray="4 3"/>` +
+             (label ? `<text x="8" y="13" font-size="10" fill="${textFill}" font-family="monospace">${esc(label)}</text>` : "") +
              place(inner, 10, lh + 6),
       };
     }
