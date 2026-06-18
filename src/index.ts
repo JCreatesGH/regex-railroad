@@ -3,6 +3,7 @@ import { renderRailroad } from "./render.js";
 
 export { parse } from "./parser.js";
 export { renderRailroad } from "./render.js";
+export { RegexParseError } from "./ast.js";
 export type { Node, Look } from "./ast.js";
 
 /** Parse a regular expression and render it directly to an SVG railroad diagram. */

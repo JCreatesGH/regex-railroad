@@ -33,4 +33,10 @@ describe("cli", () => {
   it("errors with no pattern", () => {
     expect(run(["--ast"]).code).toBe(1);
   });
+
+  it("exits 2 with a message on a malformed pattern", () => {
+    const r = run(["a(bc"]);
+    expect(r.code).toBe(2);
+    expect(r.output).toMatch(/Unclosed group/);
+  });
 });

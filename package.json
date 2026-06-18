@@ -1,6 +1,6 @@
 {
   "name": "regex-railroad",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Parse a regular expression and render it as a readable SVG railroad diagram.",
   "type": "module",
   "main": "dist/index.js",

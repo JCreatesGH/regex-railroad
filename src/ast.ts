@@ -1,5 +1,13 @@
 export type Look = "lookahead" | "neg-lookahead" | "lookbehind" | "neg-lookbehind";
 
+/** Thrown by `parse` on a malformed pattern, carrying the offending character offset. */
+export class RegexParseError extends Error {
+  constructor(reason: string, public readonly index: number) {
+    super(`${reason} (at position ${index})`);
+    this.name = "RegexParseError";
+  }
+}
+
 export type Node =
   | { kind: "seq"; items: Node[] }
   | { kind: "alt"; options: Node[] }

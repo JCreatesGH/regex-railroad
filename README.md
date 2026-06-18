@@ -49,6 +49,26 @@ const diagram = renderRailroad(ast);
 - **Alternation** `a|b|c`
 - **Quantifiers** `* + ?`, `{m}`, `{m,}`, `{m,n}`, including lazy (`+?`)
 
+## Error reporting
+
+Malformed patterns fail loudly instead of rendering a misleading diagram. `parse` throws a
+`RegexParseError` carrying the offending character `index`, and the CLI exits `2` with the
+message:
+
+```bash
+$ regex-railroad 'a(bc'
+Error: Unclosed group: expected ')' (at position 4)
+```
+
+Detected: unclosed groups `(…`, unclosed character classes `[…`, unmatched `)`, a trailing
+`\`, and a dangling quantifier (`*abc`, `a**` → "Nothing to repeat").
+
+```ts
+import { parse, RegexParseError } from "regex-railroad";
+try { parse("a(bc"); }
+catch (e) { if (e instanceof RegexParseError) console.log(e.index); /* 4 */ }
+```
+
 ## How it draws
 
 The renderer lays sequences left→right, stacks alternation branches vertically, wraps groups in a dashed box (with the capture name), tints lookaround assertions amber with a plain-English label, and draws quantifiers as a loop-back arrow annotated with a human label ("1+ times", "optional", "2–4×"). Output is a self-contained SVG — no canvas, no runtime deps.
@@ -56,7 +76,7 @@ The renderer lays sequences left→right, stacks alternation branches vertically
 ## Development
 
 ```bash
-npm install && npm test    # 28 tests (parser + renderer + CLI)
+npm install && npm test    # 36 tests (parser + renderer + CLI)
 npm run build              # tsc, clean
 ```
 

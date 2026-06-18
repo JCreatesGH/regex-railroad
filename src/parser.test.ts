@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { parse } from "./parser";
+import { RegexParseError } from "./ast";
 import type { Node } from "./ast";
 
 describe("parse", () => {
@@ -92,5 +93,46 @@ describe("parse", () => {
   it("an escaped metacharacter is still a plain literal", () => {
     expect(parse("\\.")).toMatchObject({ kind: "literal", value: "." });
     expect((parse("\\.") as any).label).toBeUndefined();
+  });
+});
+
+describe("parse errors", () => {
+  it("throws RegexParseError on an unclosed group", () => {
+    expect(() => parse("a(bc")).toThrow(RegexParseError);
+    expect(() => parse("a(bc")).toThrow(/Unclosed group/);
+  });
+
+  it("throws on an unclosed character class", () => {
+    expect(() => parse("[a-z")).toThrow(/Unclosed character class/);
+  });
+
+  it("throws on an unmatched closing paren", () => {
+    expect(() => parse("ab)c")).toThrow(/Unmatched '\)'/);
+  });
+
+  it("throws on a trailing backslash", () => {
+    expect(() => parse("abc\\")).toThrow(/Trailing backslash/);
+  });
+
+  it("throws 'nothing to repeat' on a dangling quantifier", () => {
+    expect(() => parse("*abc")).toThrow(/Nothing to repeat/);
+    expect(() => parse("a**")).toThrow(/Nothing to repeat/);
+    expect(() => parse("(?:)+?*")).toThrow(/Nothing to repeat/);
+  });
+
+  it("reports the offending position", () => {
+    try {
+      parse("ab(cd");
+      throw new Error("should have thrown");
+    } catch (e) {
+      expect(e).toBeInstanceOf(RegexParseError);
+      expect((e as RegexParseError).index).toBe(5);   // end-of-input where ')' was expected
+    }
+  });
+
+  it("still accepts well-formed nested patterns", () => {
+    expect(() => parse("^(?<id>[A-Z]{2}\\d+)(-\\w+)?$")).not.toThrow();
+    expect(() => parse("(a(b(c)))")).not.toThrow();
+    expect(() => parse("[)]")).not.toThrow();        // ')' inside a class is fine
   });
 });

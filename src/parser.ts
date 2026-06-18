@@ -1,4 +1,4 @@
-import { Node, Look } from "./ast.js";
+import { Node, Look, RegexParseError } from "./ast.js";
 
 // Recursive-descent parser for a practical regex subset:
 // literals, escapes, ., \d \w \s (and negations), control/hex/unicode escapes
@@ -50,6 +50,8 @@ export function parse(source: string): Node {
 
   function parseAtom(): Node {
     const c = peek();
+    // A quantifier reaching parseAtom means there was no atom in front of it.
+    if (c === "*" || c === "+" || c === "?") throw new RegexParseError("Nothing to repeat", i);
     if (c === "(") return parseGroup();
     if (c === "[") return parseClass();
     if (c === "^") { i++; return { kind: "anchor", label: "start of line" }; }
@@ -77,7 +79,8 @@ export function parse(source: string): Node {
       }
     }
     const body = parseAlt();
-    if (peek() === ")") i++;
+    if (peek() !== ")") throw new RegexParseError("Unclosed group: expected ')'", i);
+    i++;
     return { kind: "group", capturing, name, look, body };
   }
 
@@ -85,17 +88,21 @@ export function parse(source: string): Node {
     i++; // [
     let negated = false;
     if (peek() === "^") { negated = true; i++; }
+    const open = i - 1 - (negated ? 1 : 0);   // position of the '['
     let content = "";
     while (!eof() && peek() !== "]") {
       if (peek() === "\\") { content += source[i] + (source[i + 1] ?? ""); i += 2; }
       else { content += source[i]; i++; }
     }
-    if (peek() === "]") i++;
+    if (peek() !== "]") throw new RegexParseError("Unclosed character class: expected ']'", open);
+    i++;
     return { kind: "charclass", label: `[${negated ? "^" : ""}${content}]`, negated };
   }
 
   function parseEscape(): Node {
+    const start = i;
     i++; // backslash
+    if (eof()) throw new RegexParseError("Trailing backslash", start);
     const c = source[i]; i++;
     const named: Record<string, string> = {
       d: "digit", D: "non-digit", w: "word char", W: "non-word",
@@ -130,5 +137,10 @@ export function parse(source: string): Node {
   }
 
   const node = parseAlt();
+  // The only thing that can halt the top-level alternation without being consumed
+  // is a stray ')'. Anything left over is an error.
+  if (!eof()) {
+    throw new RegexParseError(peek() === ")" ? "Unmatched ')'" : `Unexpected '${peek()}'`, i);
+  }
   return node;
 }
