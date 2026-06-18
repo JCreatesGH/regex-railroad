@@ -3,7 +3,7 @@ export type Look = "lookahead" | "neg-lookahead" | "lookbehind" | "neg-lookbehin
 export type Node =
   | { kind: "seq"; items: Node[] }
   | { kind: "alt"; options: Node[] }
-  | { kind: "literal"; value: string }
+  | { kind: "literal"; value: string; label?: string }
   | { kind: "charclass"; label: string; negated: boolean }
   | { kind: "anchor"; label: string }
   | { kind: "backref"; ref: string }

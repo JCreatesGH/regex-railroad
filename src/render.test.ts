@@ -40,4 +40,9 @@ describe("renderRailroad", () => {
   it("renders a backreference", () => {
     expect(renderRailroad(parse("(\\w)\\1"))).toContain("\\1");
   });
+
+  it("renders a control escape with its readable label", () => {
+    const svg = renderRailroad(parse("a\\nb"));
+    expect(svg).toContain("newline");   // not a literal 'n' box
+  });
 });

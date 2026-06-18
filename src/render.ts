@@ -30,7 +30,11 @@ function place(box: Box, x: number, y: number): string {
 
 function layout(node: Node): Box {
   switch (node.kind) {
-    case "literal": return term(JSON.stringify(node.value).slice(1, -1), "#fff", "#888");
+    case "literal":
+      // control/hex/unicode escapes carry a readable label and get the pill style
+      return node.label
+        ? term(node.label, "#eef", "#88a")
+        : term(JSON.stringify(node.value).slice(1, -1), "#fff", "#888");
     case "charclass": return term(node.label, "#eef", "#88a");
     case "anchor": return term(node.label, "#f6f6f6", "#bbb");
     case "backref": return term(/^\d+$/.test(node.ref) ? "↪ \\" + node.ref : "↪ «" + node.ref + "»", "#fdf3e6", "#d0a060");

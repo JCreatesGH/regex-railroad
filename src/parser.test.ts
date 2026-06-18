@@ -76,4 +76,21 @@ describe("parse", () => {
     expect(parse("\\12")).toMatchObject({ kind: "backref", ref: "12" });
     expect(parse("\\k<year>")).toMatchObject({ kind: "backref", ref: "year" });
   });
+
+  it("control escapes get readable labels (not literal letters)", () => {
+    expect(parse("\\n")).toMatchObject({ kind: "literal", label: "newline" });
+    expect(parse("\\t")).toMatchObject({ kind: "literal", label: "tab" });
+    expect(parse("\\0")).toMatchObject({ kind: "literal", label: "null" });
+  });
+
+  it("hex and unicode escapes keep their escape text as the label", () => {
+    expect(parse("\\x41")).toMatchObject({ kind: "literal", label: "\\x41" });
+    expect(parse("\\u0041")).toMatchObject({ kind: "literal", label: "\\u0041" });
+    expect(parse("\\u{1F600}")).toMatchObject({ kind: "literal", label: "\\u{1F600}" });
+  });
+
+  it("an escaped metacharacter is still a plain literal", () => {
+    expect(parse("\\.")).toMatchObject({ kind: "literal", value: "." });
+    expect((parse("\\.") as any).label).toBeUndefined();
+  });
 });

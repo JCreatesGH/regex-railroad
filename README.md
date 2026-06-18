@@ -14,7 +14,19 @@ Make regexes readable. `regex-railroad` parses a regular expression into an AST 
 npm install regex-railroad
 ```
 
-## Use it
+## CLI
+
+Installing the package adds a `regex-railroad` command:
+
+```bash
+regex-railroad '^(?<id>[A-Z]{2}\d+)(-\w+)?$' -o id.svg   # write the diagram to a file
+regex-railroad '\d{3}-\d{4}'                              # …or print SVG to stdout
+regex-railroad 'a(b|c)+' --ast                            # inspect the parsed AST as JSON
+```
+
+Exit code is `2` on a parse error, `0` otherwise.
+
+## Use it as a library
 
 ```ts
 import { parse, renderRailroad, regexToSvg } from "regex-railroad";
@@ -29,6 +41,7 @@ const diagram = renderRailroad(ast);
 
 - **Literals** and escapes; `.` (any char)
 - **Classes** `\d \w \s` and negations, plus `[a-z]` / `[^...]` character sets
+- **Control & code-point escapes** — `\n \t \r \f \v \0`, `\xHH`, `\uHHHH`, `\u{…}`, drawn with readable labels (`newline`, `\x41`, …) instead of a stray letter
 - **Anchors** `^ $ \b \B`
 - **Groups** — capturing `(…)`, non-capturing `(?:…)`, named `(?<name>…)`
 - **Lookaround** — `(?=…)`, `(?!…)`, `(?<=…)`, `(?<!…)`, drawn as labeled zero-width assertions ("followed by", "not preceded by", …)
@@ -43,7 +56,7 @@ The renderer lays sequences left→right, stacks alternation branches vertically
 ## Development
 
 ```bash
-npm install && npm test    # 19 tests (parser + renderer)
+npm install && npm test    # 28 tests (parser + renderer + CLI)
 npm run build              # tsc, clean
 ```
 

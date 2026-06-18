@@ -1,9 +1,10 @@
 import { Node, Look } from "./ast.js";
 
 // Recursive-descent parser for a practical regex subset:
-// literals, escapes, ., \d \w \s (and negations), [..] classes, ^ $ anchors,
-// backreferences (\1, \k<name>), (groups), (?:...), (?<name>...), lookaround
-// ((?=...) (?!...) (?<=...) (?<!...)), | alternation, and * + ? {m,n} quantifiers.
+// literals, escapes, ., \d \w \s (and negations), control/hex/unicode escapes
+// (\n \t \xHH \uHHHH \u{...}), [..] classes, ^ $ anchors, backreferences
+// (\1, \k<name>), (groups), (?:...), (?<name>...), lookaround ((?=...) (?!...)
+// (?<=...) (?<!...)), | alternation, and * + ? {m,n} quantifiers.
 export function parse(source: string): Node {
   let i = 0;
   const peek = () => source[i];
@@ -102,6 +103,20 @@ export function parse(source: string): Node {
     };
     if (c === "b" || c === "B") return { kind: "anchor", label: named[c] };
     if (named[c]) return { kind: "charclass", label: named[c], negated: c === c.toUpperCase() };
+    const control: Record<string, string> = {
+      n: "newline", t: "tab", r: "carriage return", f: "form feed", v: "vertical tab", "0": "null",
+    };
+    if (control[c]) return { kind: "literal", value: c, label: control[c] };
+    if (c === "x") {                                  // hex escape \xHH
+      const m = /^[0-9A-Fa-f]{2}/.exec(source.slice(i));
+      if (m) { i += 2; return { kind: "literal", value: `\\x${m[0]}`, label: `\\x${m[0]}` }; }
+    }
+    if (c === "u") {                                  // unicode escape \uHHHH or \u{...}
+      const braced = /^\{([0-9A-Fa-f]+)\}/.exec(source.slice(i));
+      if (braced) { i += braced[0].length; return { kind: "literal", value: `\\u{${braced[1]}}`, label: `\\u{${braced[1]}}` }; }
+      const m = /^[0-9A-Fa-f]{4}/.exec(source.slice(i));
+      if (m) { i += 4; return { kind: "literal", value: `\\u${m[0]}`, label: `\\u${m[0]}` }; }
+    }
     if (c >= "1" && c <= "9") {                       // numeric backreference \1..\99
       let ref = c;
       while (source[i] >= "0" && source[i] <= "9") { ref += source[i]; i++; }
